@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PRG9999 VIP Room</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2b1d3a;
+      color: #fff;
+      padding: 20px;
+    }
+    input, button, select {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    .bot-card {
+      background-color: #111;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .active { color: lime; }
+    .inactive { color: red; }
+    .lagging { color: yellow; }
+    .btn {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .btn-add { background-color: #8a2be2; color: white; }
+    .btn-remove { background-color: red; color: white; }
+    .btn-toggle { background-color: orange; color: black; }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    #player-info, #server-select {
+      background-color: #1c1230;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="player-info">
+    <h2>Player Information</h2>
+    <label for="playerID">ID Player ML</label>
+    <input type="text" id="playerID" placeholder="Masukkan ID ML Anda" />
+    <button class="btn btn-toggle" onclick="savePlayerID()">Simpan ID</button>
+    <p id="playerDisplay" style="margin-top:10px;"></p>
+  </div>
+
+  <div id="server-select">
+    <h2>Server Connection</h2>
+    <label for="server">Pilih Server</label>
+    <select id="server">
+      <option value="146.103.70.16">146.103.70.16</option>
+      <option value="156.236.20.30">156.236.20.30</option>
+      <option value="23.200.135.41">23.200.135.41</option>
+      <option value="23.200.135.27">23.200.135.27</option>
+    </select>
+    <button class="btn btn-toggle" onclick="connectServer()">Connect</button>
+    <p id="serverStatus" style="margin-top:10px;"></p>
+  </div>
+
+  <h2>Room Settings</h2>
+
+  <label>Room Name</label>
+  <input type="text" value="PRG Master Room" />
+
+  <label>Room Password</label>
+  <input type="password" value="PRGViproom4103" readonly />
+
+  <label><input type="checkbox" checked /> Private Room</label>
+  <label><input type="checkbox" checked /> Allow Spectators</label>
+  <label>Max Players: 5</label>
+  <input type="range" min="1" max="10" value="5" />
+
+  <h2 style="color: yellow;">Active Bots</h2>
+
+  <div id="bots">
+    <div class="bot-card" id="bot-b1">
+      B1 - EnemyBot_Rank - <span id="status-b1" class="active">Active</span> (192.168.1.101)
+      <button class="btn btn-toggle" onclick="toggleBot('b1')">ON/OFF</button>
+      <button class="btn btn-toggle" onclick="enemyLag('b1')">Enemy Lag</button>
+    </div>
+    <div class="bot-card" id="bot-b2">
+      B2 - EnemyBot_Classic - <span id="status-b2" class="active">Active</span> (192.168.1.102)
+      <button class="btn btn-toggle" onclick="toggleBot('b2')">ON/OFF</button>
+      <button class="btn btn-toggle" onclick="enemyLag('b2')">Enemy Lag</button>
+    </div>
+    <div class="bot-card" id="bot-b3">
+      B3 - EnemyBot_Brawl - <span id="status-b3" class="inactive">Inactive</span> (192.168.1.103)
+      <button class="btn btn-toggle" onclick="toggleBot('b3')">ON/OFF</button>
+      <button class="btn btn-toggle" onclick="enemyLag('b3')">Enemy Lag</button>
+    </div>
+  </div>
+
+  <button class="btn btn-add">+ Add Bot</button>
+  <button class="btn btn-toggle" onclick="randomizeBots()">Randomize</button>
+  <button class="btn btn-remove" onclick="removeAllBots()">Remove All</button>
+
+  <h2 style="color: yellow;">Enemy Bot Controls</h2>
+  <label>Bot Aggressiveness: <span id="aggressiveness-val">65</span></label>
+  <input type="range" min="0" max="100" value="65" oninput="document.getElementById('aggressiveness-val').innerText = this.value"/>
+
+  <script>
+    function sendToServer(action, data) {
+      const server = document.getElementById("server").value;
+      const url = `http://${server}:3000/api/status`;
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: action, data: data })
+      })
+      .then(res => res.json())
+      .then(result => {
+        console.log('Response:', result);
+        alert('Terkirim ke server: ' + JSON.stringify(result));
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Gagal terhubung ke server: ' + server);
+      });
+    }
+
+    function toggleBot(id) {
+      const span = document.getElementById('status-' + id);
+      if (span.classList.contains('active')) {
+        span.className = 'inactive';
+        span.textContent = 'Inactive';
+        sendToServer('bot_off', { bot: id });
+      } else {
+        span.className = 'active';
+        span.textContent = 'Active';
+        sendToServer('bot_on', { bot: id });
+      }
+    }
+
+    function enemyLag(id) {
+      const span = document.getElementById('status-' + id);
+      span.className = 'lagging';
+      span.textContent = 'Lagging...';
+
+      sendToServer('enemy_lag', { bot: id });
+
+      setTimeout(() => {
+        span.className = 'active';
+        span.textContent = 'Active';
+      }, 3000);
+    }
+
+    function randomizeBots() {
+      ['b1','b2','b3'].forEach(id => {
+        const status = Math.random() > 0.5 ? 'Active' : 'Inactive';
+        const span = document.getElementById('status-' + id);
+        span.className = status.toLowerCase();
+        span.textContent = status;
+        sendToServer('bot_status', { bot: id, status: status });
+      });
+    }
+
+    function removeAllBots() {
+      document.getElementById('bots').innerHTML = '';
+      sendToServer('remove_all_bots', {});
+    }
+
+    function savePlayerID() {
+      const id = document.getElementById('playerID').value;
+      const display = document.getElementById('playerDisplay');
+      if (id.trim() === "") {
+        display.innerHTML = "<span style='color:red'>ID Player tidak boleh kosong.</span>";
+      } else {
+        display.innerHTML = "ID Player ML kamu: <strong style='color:lime'>" + id + "</strong>";
+        sendToServer('save_player_id', { id: id });
+      }
+    }
+
+    function connectServer() {
+      const server = document.getElementById("server").value;
+      const status = document.getElementById("serverStatus");
+      status.innerHTML = "Menghubungkan ke server: <strong style='color:lime'>" + server + "</strong>...";
+      sendToServer('connect', { server: server });
+    }
+  </script>
+
+</body>
+</html>
