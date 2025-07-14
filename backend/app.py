@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import socket
 
 app = Flask(__name__)
-CORS(app)  # Mengizinkan akses dari GitHub Pages
+CORS(app)  # Izinkan akses dari luar (GitHub Pages)
 
 # Simulasi data server bot
 bots = {
@@ -31,4 +32,8 @@ def toggle_lag(bot_id):
     return jsonify({"success": False}), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000)
+    # Ambil IP lokal HP secara otomatis
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    print(f"🔗 Server Flask aktif di http://{local_ip}:3000")
+    app.run(host=local_ip, port=3000)
